@@ -1,6 +1,8 @@
 import { icon } from "@/constants/icon";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme.web";
 import { PlatformPressable } from "@react-navigation/elements";
-import { useLinkBuilder, useTheme } from "@react-navigation/native";
+import { useLinkBuilder } from "@react-navigation/native";
 import React, { useEffect } from "react";
 import { GestureResponderEvent, StyleSheet } from "react-native";
 import Animated, {
@@ -29,7 +31,7 @@ const TabBarButton = ({
   routeName: string;
   label: string;
 }) => {
-  const { colors } = useTheme();
+  const colorScheme = useColorScheme();
   const { buildHref } = useLinkBuilder();
 
   const scale = useSharedValue(0);
@@ -58,6 +60,8 @@ const TabBarButton = ({
     };
   });
 
+  const colors = Colors[colorScheme ?? "light"];
+
   return (
     <PlatformPressable
       href={buildHref(routeName)}
@@ -68,12 +72,15 @@ const TabBarButton = ({
       <Animated.View style={animatedIconStyle}>
         {/* @ts-ignore */}
         {icon[routeName]({
-          color: isFocused ? colors.primary : colors.text,
+          color: isFocused ? colors.tabIconSelected : colors.tabIconDefault,
         })}
       </Animated.View>
       <Animated.Text
         style={[
-          { color: isFocused ? colors.primary : colors.text, fontSize: 12 },
+          {
+            color: isFocused ? colors.tabIconSelected : colors.tabIconDefault,
+            fontSize: 12,
+          },
           animatedTextStyle,
         ]}
       >
