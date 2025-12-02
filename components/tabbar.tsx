@@ -38,7 +38,7 @@ export function TabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   return (
     <View style={styles.tabbarContainer}>
-      <BlurView intensity={80} style={styles.tabbar} onLayout={onTabbarLayout}>
+      <BlurView intensity={50} style={styles.tabbar} onLayout={onTabbarLayout}>
         <Animated.View
           style={[
             {

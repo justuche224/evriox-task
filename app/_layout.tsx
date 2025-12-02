@@ -10,11 +10,6 @@ import "react-native-reanimated";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
-export const unstable_settings = {
-  anchor: "(tabs)",
-};
-
-// Custom theme configurations
 const CustomLightTheme = {
   ...DefaultTheme,
   colors: {
@@ -49,7 +44,7 @@ export default function RootLayout() {
       value={colorScheme === "dark" ? CustomDarkTheme : CustomLightTheme}
     >
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
