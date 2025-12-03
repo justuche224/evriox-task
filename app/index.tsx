@@ -51,6 +51,7 @@ const HomeScreen = () => {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const scrollViewRef = useRef<ScrollView>(null);
+  const dayPositions = useRef<{ [key: number]: number }>({});
   const [currentDayY, setCurrentDayY] = useState<number | null>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
 
@@ -170,6 +171,7 @@ const HomeScreen = () => {
   useEffect(() => {
     setCurrentDayY(null);
     setHasScrolled(false);
+    dayPositions.current = {}; // Reset positions
   }, [timelineData.length]);
 
   useEffect(() => {
@@ -219,14 +221,23 @@ const HomeScreen = () => {
     });
 
     if (index !== -1 && scrollViewRef.current) {
-      // Rough estimate: each day averages about 200px
-      const estimatedY = index * 200;
+      // Use measured position if available, otherwise estimate
+      const y =
+        dayPositions.current[index] !== undefined
+          ? dayPositions.current[index]
+          : index * 200;
+
       scrollViewRef.current.scrollTo({
-        y: Math.max(0, estimatedY - 100),
+        y: Math.max(0, y - 100),
         animated: true,
       });
     }
     closeCalendar();
+  };
+
+  const handleScrollToToday = () => {
+    const today = new Date().toISOString().split("T")[0];
+    scrollToDate(today);
   };
 
   return (
@@ -302,6 +313,21 @@ const HomeScreen = () => {
             >
               <Feather name="calendar" size={22} color={colors.tint} />
             </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.filterButton,
+                {
+                  backgroundColor:
+                    colorScheme === "dark" ? "#1A1A1A" : "#F3F4F6",
+                  borderColor: colorScheme === "dark" ? "#2D2D2D" : "#E5E7EB",
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+              onPress={handleScrollToToday}
+            >
+              <Feather name="target" size={22} color={colors.tint} />
+            </Pressable>
           </View>
         </View>
 
@@ -315,9 +341,11 @@ const HomeScreen = () => {
             <View
               key={`${dayItem.day}-${dayItem.month}`}
               onLayout={(event) => {
+                const { y } = event.nativeEvent.layout;
+                dayPositions.current[dayIndex] = y;
+
                 // Capture current day position
                 if (dayItem.isCurrent && currentDayY === null) {
-                  const { y } = event.nativeEvent.layout;
                   setCurrentDayY(y);
                 }
               }}
