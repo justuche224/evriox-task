@@ -12,7 +12,7 @@ const tintColorDark = '#60A5FA'; // Bright blue for dark mode
 export const Colors = {
   light: {
     text: '#1F2937', // Rich dark gray for text
-    background: '#FFFFFF', // Pure white
+    background: '#F9FAFB', // Very light gray for better contrast with white cards
     tint: tintColorLight,
     icon: '#9CA3AF', // Soft gray for icons
     tabIconDefault: '#6B7280', // Darker gray for unselected tabs

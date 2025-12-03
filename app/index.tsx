@@ -1,8 +1,9 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme.web";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import Feather from "@react-native-vector-icons/feather";
+import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Image,
@@ -13,10 +14,15 @@ import {
   TextInput,
   View,
 } from "react-native";
+import Animated, {
+  FadeInDown,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-// Mock data for timeline - ordered from PAST to FUTURE
-// Past days (20-26) -> Current day (27) -> Future days (28+)
 const timelineData = [
   {
     day: 20,
@@ -149,6 +155,27 @@ const timelineData = [
   },
 ];
 
+const PulsingRing = ({ color }: { color: string }) => {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.3);
+
+  useEffect(() => {
+    scale.value = withRepeat(withTiming(1.5, { duration: 2000 }), -1, false);
+    opacity.value = withRepeat(withTiming(0, { duration: 2000 }), -1, false);
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View
+      style={[styles.currentDayRing, { borderColor: color }, animatedStyle]}
+    />
+  );
+};
+
 const HomeScreen = () => {
   const colorScheme = useColorScheme();
   const [searchText, setSearchText] = useState("");
@@ -175,7 +202,15 @@ const HomeScreen = () => {
     <ThemedView style={styles.container}>
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
         <View style={styles.header}>
-          <ThemedText style={styles.greeting}>Hi, Donald</ThemedText>
+          <View style={styles.headerTopRow}>
+            <View>
+              <ThemedText style={styles.greeting}>Hi, Donald</ThemedText>
+              <ThemedText style={styles.date}>Today, Nov 27</ThemedText>
+            </View>
+            <Pressable style={styles.profileAvatar}>
+              <ThemedText style={styles.profileAvatarText}>D</ThemedText>
+            </Pressable>
+          </View>
 
           <View style={styles.searchContainer}>
             <View
@@ -280,29 +315,36 @@ const HomeScreen = () => {
                   )}
 
                   {/* Day Circle - Highlight current day */}
-                  <View
-                    style={[
-                      styles.dayCircle,
-                      {
-                        backgroundColor: dayItem.isCurrent
-                          ? colors.tint
-                          : colorScheme === "dark"
-                          ? "#1A1A1A"
-                          : "#FFFFFF",
-                        borderColor: colors.tint,
-                      },
-                    ]}
-                  >
-                    <ThemedText
+                  <View style={styles.dayCircleContainer}>
+                    {dayItem.isCurrent && <PulsingRing color={colors.tint} />}
+                    <View
                       style={[
-                        styles.dayNumber,
-                        dayItem.isCurrent && {
-                          color: "#FFFFFF",
+                        styles.dayCircle,
+                        {
+                          backgroundColor: dayItem.isCurrent
+                            ? colors.tint
+                            : colorScheme === "dark"
+                            ? "#1A1A1A"
+                            : "#FFFFFF",
+                          borderColor: dayItem.isCurrent
+                            ? colors.tint
+                            : colorScheme === "dark"
+                            ? "#2D2D2D"
+                            : "#E5E7EB",
                         },
                       ]}
                     >
-                      {dayItem.day}
-                    </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.dayNumber,
+                          dayItem.isCurrent && {
+                            color: "#FFFFFF",
+                          },
+                        ]}
+                      >
+                        {dayItem.day}
+                      </ThemedText>
+                    </View>
                   </View>
 
                   {/* Connecting Line (bottom) */}
@@ -324,13 +366,20 @@ const HomeScreen = () => {
                 <View style={styles.timelineRight}>
                   {dayItem.tasks.length === 0 ? (
                     <View style={styles.emptyDayContainer}>
+                      <Feather
+                        name="calendar"
+                        size={24}
+                        color={colorScheme === "dark" ? "#4B5563" : "#9CA3AF"}
+                        style={{ marginBottom: 8, opacity: 0.6 }}
+                      />
                       <ThemedText style={styles.emptyDayText}>
-                        Nothing on this day
+                        No tasks scheduled
                       </ThemedText>
                     </View>
                   ) : (
-                    dayItem.tasks.map((task) => (
-                      <View
+                    dayItem.tasks.map((task, index) => (
+                      <Animated.View
+                        entering={FadeInDown.delay(index * 100).springify()}
                         key={task.id}
                         style={[
                           styles.taskCard,
@@ -339,57 +388,80 @@ const HomeScreen = () => {
                               colorScheme === "dark" ? "#1A1A1A" : "#FFFFFF",
                             borderColor:
                               colorScheme === "dark" ? "#2D2D2D" : "#E5E7EB",
+                            borderLeftColor: colors.tint,
                           },
                         ]}
                       >
-                        {/* Task Header with Checkbox */}
-                        <View style={styles.taskHeader}>
-                          <ThemedText style={styles.taskText} numberOfLines={2}>
-                            {task.text}
-                          </ThemedText>
-                          <Pressable
-                            style={[
-                              styles.checkbox,
-                              {
-                                borderColor:
-                                  colorScheme === "dark"
-                                    ? "#4B5563"
-                                    : "#D1D5DB",
-                              },
-                            ]}
-                          >
-                            <Feather
-                              name="circle"
-                              size={20}
-                              color={
-                                colorScheme === "dark" ? "#4B5563" : "#D1D5DB"
-                              }
-                            />
-                          </Pressable>
-                        </View>
-
-                        {/* Task Images */}
-                        {task.images && task.images.length > 0 && (
-                          <View style={styles.taskImagesContainer}>
-                            {task.images.map((img, idx) => (
-                              <View key={idx} style={styles.taskImageWrapper}>
-                                <Image
-                                  source={require("@/assets/images/android-icon-background.png")}
-                                  style={styles.taskImage}
-                                  resizeMode="cover"
-                                />
-                              </View>
-                            ))}
+                        <Pressable
+                          style={({ pressed }) => ({
+                            opacity: pressed ? 0.7 : 1,
+                          })}
+                        >
+                          {/* Task Header with Checkbox */}
+                          <View style={styles.taskHeader}>
+                            <ThemedText
+                              style={styles.taskText}
+                              numberOfLines={2}
+                            >
+                              {task.text}
+                            </ThemedText>
+                            <Pressable
+                              style={[
+                                styles.checkbox,
+                                {
+                                  borderColor:
+                                    colorScheme === "dark"
+                                      ? "#4B5563"
+                                      : "#D1D5DB",
+                                },
+                              ]}
+                            >
+                              <Feather
+                                name="circle"
+                                size={20}
+                                color={
+                                  colorScheme === "dark" ? "#4B5563" : "#D1D5DB"
+                                }
+                              />
+                            </Pressable>
                           </View>
-                        )}
 
-                        {/* Task Time */}
-                        <View style={styles.taskFooter}>
-                          <ThemedText style={styles.taskTime}>
-                            {task.time}
-                          </ThemedText>
-                        </View>
-                      </View>
+                          {/* Task Images */}
+                          {task.images && task.images.length > 0 && (
+                            <View style={styles.taskImagesContainer}>
+                              {task.images.map((img, idx) => (
+                                <View
+                                  key={idx}
+                                  style={[
+                                    styles.taskImageWrapper,
+                                    idx > 0 && { marginLeft: -12 },
+                                    { zIndex: task.images.length - idx },
+                                    {
+                                      borderColor:
+                                        colorScheme === "dark"
+                                          ? "#1A1A1A"
+                                          : "#FFFFFF",
+                                    },
+                                  ]}
+                                >
+                                  <Image
+                                    source={require("@/assets/images/android-icon-background.png")}
+                                    style={styles.taskImage}
+                                    resizeMode="cover"
+                                  />
+                                </View>
+                              ))}
+                            </View>
+                          )}
+
+                          {/* Task Time */}
+                          <View style={styles.taskFooter}>
+                            <ThemedText style={styles.taskTime}>
+                              {task.time}
+                            </ThemedText>
+                          </View>
+                        </Pressable>
+                      </Animated.View>
                     ))
                   )}
                 </View>
@@ -404,14 +476,20 @@ const HomeScreen = () => {
         {/* Floating Action Button */}
         <Pressable
           style={({ pressed }) => [
-            styles.fab,
+            styles.fabContainer,
             {
-              backgroundColor: colors.tint,
               opacity: pressed ? 0.8 : 1,
             },
           ]}
         >
-          <Feather name="plus" size={32} color="#FFFFFF" />
+          <LinearGradient
+            colors={[colors.tint, "#3B82F6"]}
+            style={styles.fab}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Feather name="plus" size={32} color="#FFFFFF" />
+          </LinearGradient>
         </Pressable>
       </SafeAreaView>
     </ThemedView>
@@ -427,14 +505,41 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 25,
+    paddingTop: 10,
     paddingBottom: 16,
+  },
+  headerTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    paddingTop: 15,
+  },
+  profileAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#E0E7FF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#C7D2FE",
+  },
+  profileAvatarText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#4338CA",
   },
   greeting: {
     fontSize: 32,
     fontWeight: "700",
-    marginBottom: 20,
     letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  date: {
+    fontSize: 15,
+    fontWeight: "500",
+    opacity: 0.6,
   },
   searchContainer: {
     flexDirection: "row",
@@ -446,18 +551,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     height: 52,
-    borderRadius: 16,
+    borderRadius: 20,
     paddingHorizontal: 16,
     borderWidth: 1,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
       },
       android: {
-        elevation: 2,
+        elevation: 4,
       },
     }),
   },
@@ -473,19 +578,19 @@ const styles = StyleSheet.create({
   filterButton: {
     width: 52,
     height: 52,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
       },
       android: {
-        elevation: 2,
+        elevation: 4,
       },
     }),
   },
@@ -528,13 +633,28 @@ const styles = StyleSheet.create({
     width: 2,
     minHeight: 20,
   },
-  dayCircle: {
+  dayCircleContainer: {
     width: 48,
     height: 48,
-    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  currentDayRing: {
+    position: "absolute",
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 2,
+    opacity: 0.3,
+  },
+  dayCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
+    zIndex: 1,
   },
   dayNumber: {
     fontSize: 18,
@@ -560,6 +680,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     width: "100%",
+    borderLeftWidth: 4,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
@@ -592,14 +713,15 @@ const styles = StyleSheet.create({
   },
   taskImagesContainer: {
     flexDirection: "row",
-    gap: 8,
     marginBottom: 12,
+    paddingLeft: 4, // Add padding to account for the first image's border if needed
   },
   taskImageWrapper: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     overflow: "hidden",
+    borderWidth: 2,
   },
   taskImage: {
     width: "100%",
@@ -614,26 +736,28 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     fontWeight: "500",
   },
-  fab: {
+  fabContainer: {
     position: "absolute",
     bottom: 30,
     right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: "center",
-    justifyContent: "center",
     ...Platform.select({
       ios: {
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
+        shadowColor: "#2563EB",
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
       },
       android: {
         elevation: 8,
       },
     }),
+  },
+  fab: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 
