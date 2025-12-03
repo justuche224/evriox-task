@@ -18,6 +18,7 @@ interface TaskStore {
   selectedDate: Date | null;
   isModalOpen: boolean;
   editingTask: Task | null;
+  isCalendarOpen: boolean;
 
   // Actions
   loadTasks: () => Promise<void>;
@@ -29,6 +30,8 @@ interface TaskStore {
   setSelectedDate: (date: Date | null) => void;
   openModal: (task?: Task) => void;
   closeModal: () => void;
+  openCalendar: () => void;
+  closeCalendar: () => void;
 
   // Computed
   getFilteredTasks: () => Task[];
@@ -43,6 +46,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   selectedDate: null,
   isModalOpen: false,
   editingTask: null,
+  isCalendarOpen: false,
 
   // Load all tasks from SQLite
   loadTasks: async () => {
@@ -159,6 +163,16 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   // Close modal
   closeModal: () => {
     set({ isModalOpen: false, editingTask: null });
+  },
+
+  // Open calendar
+  openCalendar: () => {
+    set({ isCalendarOpen: true });
+  },
+
+  // Close calendar
+  closeCalendar: () => {
+    set({ isCalendarOpen: false });
   },
 
   // Get filtered tasks based on search and date

@@ -1,3 +1,4 @@
+import { CalendarView } from "@/components/calendar-view";
 import { TaskModal } from "@/components/task-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -60,6 +61,20 @@ const HomeScreen = () => {
   const setSearchText = useTaskStore((state) => state.setSearchText);
   const openModal = useTaskStore((state) => state.openModal);
   const toggleCompletion = useTaskStore((state) => state.toggleCompletion);
+  const isCalendarOpen = useTaskStore((state) => state.isCalendarOpen);
+  const openCalendar = useTaskStore((state) => state.openCalendar);
+  const closeCalendar = useTaskStore((state) => state.closeCalendar);
+
+  // Memoize dates with tasks to ensure fresh data
+  const datesWithTasks = useMemo(() => {
+    const dates = new Set<string>();
+    tasks.forEach((task) => {
+      if (task.date) {
+        dates.add(task.date);
+      }
+    });
+    return Array.from(dates);
+  }, [tasks]);
 
   // Compute timeline data with useMemo to avoid infinite loops
   const timelineData = useMemo(() => {
@@ -171,6 +186,49 @@ const HomeScreen = () => {
     }
   }, [currentDayY, hasScrolled]);
 
+  // Scroll to specific date from calendar
+  const scrollToDate = (dateStr: string) => {
+    // Find the date in timeline
+    const index = timelineData.findIndex((dayItem) => {
+      // If day has tasks, use the first task's date
+      if (dayItem.tasks.length > 0) {
+        return dayItem.tasks[0].date === dateStr;
+      }
+
+      // Otherwise, construct date from month and day
+      const monthIndex = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ].indexOf(dayItem.month);
+
+      const year = new Date().getFullYear();
+      const itemDate = new Date(year, monthIndex, dayItem.day);
+      const itemDateStr = itemDate.toISOString().split("T")[0];
+
+      return itemDateStr === dateStr;
+    });
+
+    if (index !== -1 && scrollViewRef.current) {
+      // Rough estimate: each day averages about 200px
+      const estimatedY = index * 200;
+      scrollViewRef.current.scrollTo({
+        y: Math.max(0, estimatedY - 100),
+        animated: true,
+      });
+    }
+    closeCalendar();
+  };
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
@@ -228,6 +286,21 @@ const HomeScreen = () => {
               ]}
             >
               <Feather name="sliders" size={22} color={colors.tint} />
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.filterButton,
+                {
+                  backgroundColor:
+                    colorScheme === "dark" ? "#1A1A1A" : "#F3F4F6",
+                  borderColor: colorScheme === "dark" ? "#2D2D2D" : "#E5E7EB",
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+              onPress={openCalendar}
+            >
+              <Feather name="calendar" size={22} color={colors.tint} />
             </Pressable>
           </View>
         </View>
@@ -517,6 +590,14 @@ const HomeScreen = () => {
 
         {/* Task Modal */}
         <TaskModal />
+
+        {/* Calendar Modal */}
+        <CalendarView
+          visible={isCalendarOpen}
+          onClose={closeCalendar}
+          onDateSelect={scrollToDate}
+          datesWithTasks={datesWithTasks}
+        />
       </SafeAreaView>
     </ThemedView>
   );
