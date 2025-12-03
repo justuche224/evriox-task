@@ -157,10 +157,6 @@ const HomeScreen = () => {
   const [currentDayY, setCurrentDayY] = useState<number | null>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
 
-  // Find current day index
-  const currentDayIndex = timelineData.findIndex((day) => day.isCurrent);
-
-  // Scroll to current day once layout is complete
   useEffect(() => {
     if (currentDayY !== null && !hasScrolled && scrollViewRef.current) {
       const timer = setTimeout(() => {
@@ -404,6 +400,19 @@ const HomeScreen = () => {
           {/* Bottom spacing */}
           <View style={{ height: 100 }} />
         </ScrollView>
+
+        {/* Floating Action Button */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.fab,
+            {
+              backgroundColor: colors.tint,
+              opacity: pressed ? 0.8 : 1,
+            },
+          ]}
+        >
+          <Feather name="plus" size={32} color="#FFFFFF" />
+        </Pressable>
       </SafeAreaView>
     </ThemedView>
   );
@@ -489,8 +498,8 @@ const styles = StyleSheet.create({
   },
   monthBadgeContainer: {
     alignItems: "flex-end",
-    marginBottom: 16,
-    marginTop: 8,
+    marginBottom: 26,
+    marginTop: 10,
   },
   monthBadge: {
     paddingHorizontal: 16,
@@ -534,6 +543,7 @@ const styles = StyleSheet.create({
   timelineRight: {
     flex: 1,
     paddingVertical: 20,
+    paddingTop: 60,
     gap: 12,
   },
   emptyDayContainer: {
@@ -603,6 +613,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     opacity: 0.6,
     fontWeight: "500",
+  },
+  fab: {
+    position: "absolute",
+    bottom: 30,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
 });
 
