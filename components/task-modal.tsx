@@ -20,14 +20,24 @@ import {
   View,
 } from "react-native";
 import { ThemedText } from "./themed-text";
+import { ImageViewer } from "./image-viewer";
+
+type ModalMode = "view" | "edit" | "create";
 
 export function TaskModal() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
 
-  const { isModalOpen, editingTask, closeModal, addTask, updateTask } =
-    useTaskStore();
+  const {
+    isModalOpen,
+    editingTask,
+    closeModal,
+    addTask,
+    updateTask,
+    deleteTask,
+  } = useTaskStore();
 
+  const [mode, setMode] = useState<ModalMode>("create");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(new Date());
   const [imageUris, setImageUris] = useState<string[]>([]);
@@ -35,14 +45,20 @@ export function TaskModal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPickingImage, setIsPickingImage] = useState(false);
 
+  // Image viewer state
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+  const [initialImageIndex, setInitialImageIndex] = useState(0);
+
   // Initialize form when modal opens or editing task changes
   useEffect(() => {
     if (isModalOpen) {
       if (editingTask) {
+        setMode("view");
         setNote(editingTask.note);
         setDate(new Date(editingTask.date));
         setImageUris(editingTask.imageUris || []);
       } else {
+        setMode("create");
         setNote("");
         setDate(new Date());
         setImageUris([]);
@@ -76,6 +92,29 @@ export function TaskModal() {
     setImageUris(imageUris.filter((uri) => uri !== uriToRemove));
   };
 
+  const handleDelete = () => {
+    Alert.alert("Delete Task", "Are you sure you want to delete this task?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          if (editingTask) {
+            await deleteTask(editingTask.id);
+            closeModal();
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleImagePress = (index: number) => {
+    if (mode === "view") {
+      setInitialImageIndex(index);
+      setIsImageViewerOpen(true);
+    }
+  };
+
   const handleSave = async () => {
     if (!note.trim()) {
       Alert.alert("Validation Error", "Please enter a task note.");
@@ -93,6 +132,7 @@ export function TaskModal() {
           date: dateStr,
           imageUris: imageUris.length > 0 ? imageUris : null,
         });
+        setMode("view"); // Switch back to view mode after edit
       } else {
         // Create new task
         await addTask(
@@ -100,9 +140,8 @@ export function TaskModal() {
           dateStr,
           imageUris.length > 0 ? imageUris : undefined
         );
+        closeModal();
       }
-
-      closeModal();
     } catch (error) {
       Alert.alert("Error", "Failed to save task. Please try again.");
     } finally {
@@ -111,7 +150,19 @@ export function TaskModal() {
   };
 
   const handleCancel = () => {
-    closeModal();
+    if (mode === "edit") {
+      // Revert changes
+      if (editingTask) {
+        setNote(editingTask.note);
+        setDate(new Date(editingTask.date));
+        setImageUris(editingTask.imageUris || []);
+        setMode("view");
+      } else {
+        closeModal();
+      }
+    } else {
+      closeModal();
+    }
   };
 
   if (!isModalOpen) return null;
@@ -142,7 +193,11 @@ export function TaskModal() {
             {/* Header */}
             <View style={styles.modalHeader}>
               <ThemedText style={styles.modalTitle}>
-                {editingTask ? "Edit Task" : "New Task"}
+                {mode === "create"
+                  ? "New Task"
+                  : mode === "edit"
+                  ? "Edit Task"
+                  : "Task Details"}
               </ThemedText>
               <Pressable onPress={handleCancel} style={styles.closeButton}>
                 <Feather name="x" size={24} color={colors.text} />
@@ -153,69 +208,106 @@ export function TaskModal() {
               style={styles.modalBody}
               showsVerticalScrollIndicator={false}
             >
-              {/* Date Picker */}
+              {/* Date Section */}
               <View style={styles.section}>
                 <ThemedText style={styles.label}>Date</ThemedText>
-                <Pressable
-                  style={[
-                    styles.dateButton,
-                    {
-                      backgroundColor:
-                        colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
-                      borderColor:
-                        colorScheme === "dark" ? "#3D3D3D" : "#E5E7EB",
-                    },
-                  ]}
-                  onPress={() => setShowDatePicker(true)}
-                >
-                  <Feather
-                    name="calendar"
-                    size={20}
-                    color={colors.tint}
-                    style={styles.dateIcon}
-                  />
-                  <Text style={[styles.dateText, { color: colors.text }]}>
-                    {date.toLocaleDateString("en-US", {
-                      weekday: "short",
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </Text>
-                </Pressable>
+                {mode === "view" ? (
+                  <View style={styles.readOnlyField}>
+                    <Feather
+                      name="calendar"
+                      size={20}
+                      color={colors.tint}
+                      style={styles.dateIcon}
+                    />
+                    <ThemedText style={styles.readOnlyText}>
+                      {date.toLocaleDateString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </ThemedText>
+                  </View>
+                ) : (
+                  <>
+                    <Pressable
+                      style={[
+                        styles.dateButton,
+                        {
+                          backgroundColor:
+                            colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
+                          borderColor:
+                            colorScheme === "dark" ? "#3D3D3D" : "#E5E7EB",
+                        },
+                      ]}
+                      onPress={() => setShowDatePicker(true)}
+                    >
+                      <Feather
+                        name="calendar"
+                        size={20}
+                        color={colors.tint}
+                        style={styles.dateIcon}
+                      />
+                      <Text style={[styles.dateText, { color: colors.text }]}>
+                        {date.toLocaleDateString("en-US", {
+                          weekday: "short",
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </Text>
+                    </Pressable>
 
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={date}
-                    mode="date"
-                    display={Platform.OS === "ios" ? "spinner" : "default"}
-                    onChange={handleDateChange}
-                  />
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={date}
+                        mode="date"
+                        display={Platform.OS === "ios" ? "spinner" : "default"}
+                        onChange={handleDateChange}
+                      />
+                    )}
+                  </>
                 )}
               </View>
 
-              {/* Note Input */}
+              {/* Note Section */}
               <View style={styles.section}>
                 <ThemedText style={styles.label}>Note</ThemedText>
-                <TextInput
-                  style={[
-                    styles.noteInput,
-                    {
-                      backgroundColor:
-                        colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
-                      borderColor:
-                        colorScheme === "dark" ? "#3D3D3D" : "#E5E7EB",
-                      color: colors.text,
-                    },
-                  ]}
-                  placeholder="Enter your task note..."
-                  placeholderTextColor={colors.icon}
-                  value={note}
-                  onChangeText={setNote}
-                  multiline
-                  numberOfLines={4}
-                  textAlignVertical="top"
-                />
+                {mode === "view" ? (
+                  <View
+                    style={[
+                      styles.readOnlyNoteContainer,
+                      {
+                        backgroundColor:
+                          colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
+                      },
+                    ]}
+                  >
+                    <ThemedText style={styles.readOnlyNoteText}>
+                      {note}
+                    </ThemedText>
+                  </View>
+                ) : (
+                  <TextInput
+                    style={[
+                      styles.noteInput,
+                      {
+                        backgroundColor:
+                          colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
+                        borderColor:
+                          colorScheme === "dark" ? "#3D3D3D" : "#E5E7EB",
+                        color: colors.text,
+                      },
+                    ]}
+                    placeholder="Enter your task note..."
+                    placeholderTextColor={colors.icon}
+                    value={note}
+                    onChangeText={setNote}
+                    multiline
+                    numberOfLines={4}
+                    textAlignVertical="top"
+                  />
+                )}
               </View>
 
               {/* Image Section */}
@@ -224,7 +316,7 @@ export function TaskModal() {
                   <ThemedText style={styles.label}>
                     Images ({imageUris.length})
                   </ThemedText>
-                  {imageUris.length > 0 && (
+                  {mode !== "view" && imageUris.length > 0 && (
                     <Pressable
                       style={styles.addMoreButton}
                       onPress={handlePickImages}
@@ -249,95 +341,156 @@ export function TaskModal() {
                   >
                     {imageUris.map((uri, index) => (
                       <View key={uri} style={styles.imagePreviewContainer}>
-                        <Image source={{ uri }} style={styles.imagePreview} />
-                        <Pressable
-                          style={[
-                            styles.removeImageButton,
-                            {
-                              backgroundColor:
-                                colorScheme === "dark" ? "#1A1A1A" : "#FFFFFF",
-                            },
-                          ]}
-                          onPress={() => handleRemoveImage(uri)}
-                        >
-                          <Feather name="x" size={18} color="#EF4444" />
+                        <Pressable onPress={() => handleImagePress(index)}>
+                          <Image source={{ uri }} style={styles.imagePreview} />
                         </Pressable>
+                        {mode !== "view" && (
+                          <Pressable
+                            style={[
+                              styles.removeImageButton,
+                              {
+                                backgroundColor:
+                                  colorScheme === "dark"
+                                    ? "#1A1A1A"
+                                    : "#FFFFFF",
+                              },
+                            ]}
+                            onPress={() => handleRemoveImage(uri)}
+                          >
+                            <Feather name="x" size={18} color="#EF4444" />
+                          </Pressable>
+                        )}
                       </View>
                     ))}
                   </ScrollView>
                 ) : (
-                  <Pressable
-                    style={[
-                      styles.addImageButton,
-                      {
-                        backgroundColor:
-                          colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
-                        borderColor:
-                          colorScheme === "dark" ? "#3D3D3D" : "#E5E7EB",
-                      },
-                    ]}
-                    onPress={handlePickImages}
-                    disabled={isPickingImage}
-                  >
-                    {isPickingImage ? (
-                      <ActivityIndicator size="small" color={colors.tint} />
-                    ) : (
-                      <>
-                        <Feather name="image" size={24} color={colors.tint} />
-                        <ThemedText
-                          style={[styles.addImageText, { color: colors.tint }]}
-                        >
-                          Add Images
-                        </ThemedText>
-                      </>
-                    )}
-                  </Pressable>
+                  mode !== "view" && (
+                    <Pressable
+                      style={[
+                        styles.addImageButton,
+                        {
+                          backgroundColor:
+                            colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
+                          borderColor:
+                            colorScheme === "dark" ? "#3D3D3D" : "#E5E7EB",
+                        },
+                      ]}
+                      onPress={handlePickImages}
+                      disabled={isPickingImage}
+                    >
+                      {isPickingImage ? (
+                        <ActivityIndicator size="small" color={colors.tint} />
+                      ) : (
+                        <>
+                          <Feather name="image" size={24} color={colors.tint} />
+                          <ThemedText
+                            style={[
+                              styles.addImageText,
+                              { color: colors.tint },
+                            ]}
+                          >
+                            Add Images
+                          </ThemedText>
+                        </>
+                      )}
+                    </Pressable>
+                  )
                 )}
               </View>
             </ScrollView>
 
             {/* Footer Buttons */}
             <View style={styles.modalFooter}>
-              <Pressable
-                style={[
-                  styles.button,
-                  styles.cancelButton,
-                  {
-                    backgroundColor:
-                      colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
-                  },
-                ]}
-                onPress={handleCancel}
-                disabled={isSubmitting}
-              >
-                <Text style={[styles.cancelButtonText, { color: colors.text }]}>
-                  Cancel
-                </Text>
-              </Pressable>
+              {mode === "view" ? (
+                <>
+                  <Pressable
+                    style={[
+                      styles.button,
+                      styles.deleteButton,
+                      {
+                        backgroundColor:
+                          colorScheme === "dark" ? "#2D2D2D" : "#FEE2E2",
+                      },
+                    ]}
+                    onPress={handleDelete}
+                  >
+                    <Feather name="trash-2" size={20} color="#EF4444" />
+                    <Text style={styles.deleteButtonText}>Delete</Text>
+                  </Pressable>
 
-              <Pressable
-                style={[styles.button, styles.saveButton]}
-                onPress={handleSave}
-                disabled={isSubmitting}
-              >
-                <LinearGradient
-                  colors={[colors.tint, "#3B82F6"]}
-                  style={styles.saveButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.saveButtonText}>
-                      {editingTask ? "Update" : "Create"}
+                  <Pressable
+                    style={[styles.button, styles.saveButton]}
+                    onPress={() => setMode("edit")}
+                  >
+                    <LinearGradient
+                      colors={[colors.tint, "#3B82F6"]}
+                      style={styles.saveButtonGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      <Feather
+                        name="edit-2"
+                        size={20}
+                        color="#FFFFFF"
+                        style={{ marginRight: 8 }}
+                      />
+                      <Text style={styles.saveButtonText}>Edit Task</Text>
+                    </LinearGradient>
+                  </Pressable>
+                </>
+              ) : (
+                <>
+                  <Pressable
+                    style={[
+                      styles.button,
+                      styles.cancelButton,
+                      {
+                        backgroundColor:
+                          colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
+                      },
+                    ]}
+                    onPress={handleCancel}
+                    disabled={isSubmitting}
+                  >
+                    <Text
+                      style={[styles.cancelButtonText, { color: colors.text }]}
+                    >
+                      Cancel
                     </Text>
-                  )}
-                </LinearGradient>
-              </Pressable>
+                  </Pressable>
+
+                  <Pressable
+                    style={[styles.button, styles.saveButton]}
+                    onPress={handleSave}
+                    disabled={isSubmitting}
+                  >
+                    <LinearGradient
+                      colors={[colors.tint, "#3B82F6"]}
+                      style={styles.saveButtonGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      {isSubmitting ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.saveButtonText}>
+                          {mode === "edit" ? "Update" : "Create"}
+                        </Text>
+                      )}
+                    </LinearGradient>
+                  </Pressable>
+                </>
+              )}
             </View>
           </View>
         </View>
+
+        <ImageViewer
+          visible={isImageViewerOpen}
+          imageUris={imageUris}
+          initialIndex={initialImageIndex}
+          onClose={() => setIsImageViewerOpen(false)}
+        />
       </View>
     </Modal>
   );
@@ -524,5 +677,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  readOnlyField: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 0,
+  },
+  readOnlyText: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  readOnlyNoteContainer: {
+    borderRadius: 16,
+    padding: 16,
+    minHeight: 120,
+  },
+  readOnlyNoteText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  deleteButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  deleteButtonText: {
+    color: "#EF4444",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
