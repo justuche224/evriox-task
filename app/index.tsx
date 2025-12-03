@@ -1,10 +1,12 @@
+import { TaskModal } from "@/components/task-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useTaskStore } from "@/store/use-task-store";
 import Feather from "@react-native-vector-icons/feather";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   Platform,
@@ -22,138 +24,6 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-const timelineData = [
-  {
-    day: 20,
-    month: "November",
-    tasks: [
-      {
-        id: 101,
-        text: "Completed task from last week",
-        time: "02:30 PM",
-        images: [1],
-      },
-    ],
-  },
-  {
-    day: 21,
-    month: "November",
-    tasks: [],
-  },
-  {
-    day: 22,
-    month: "November",
-    tasks: [
-      {
-        id: 102,
-        text: "Friday meeting notes and action items",
-        time: "11:00 AM",
-        images: [1, 2],
-      },
-    ],
-  },
-  {
-    day: 23,
-    month: "November",
-    tasks: [],
-  },
-  {
-    day: 24,
-    month: "November",
-    tasks: [],
-  },
-  {
-    day: 25,
-    month: "November",
-    tasks: [
-      {
-        id: 103,
-        text: "Weekend project planning session",
-        time: "10:00 AM",
-        images: [1, 2, 3],
-      },
-    ],
-  },
-  {
-    day: 26,
-    month: "November",
-    tasks: [
-      {
-        id: 104,
-        text: "Yesterday's summary and notes",
-        time: "04:15 PM",
-        images: [1],
-      },
-    ],
-  },
-  // CURRENT DAY (27) - Will scroll to this on mount
-  {
-    day: 27,
-    month: "November",
-    isCurrent: true,
-    tasks: [
-      {
-        id: 1,
-        text: "Lorem Ipsum Dolo sit amet consectetur adipiscing elit Cras finibus, mauris in .....",
-        time: "09:25 AM",
-        images: [1, 2, 3],
-      },
-      {
-        id: 2,
-        text: "Lorem Ipsum Dolo sit amet consectetur adipiscing elit Cras finibus, mauris in ......",
-        time: "09:25 AM",
-        images: [1, 2, 3],
-      },
-      {
-        id: 3,
-        text: "Lorem Ipsum Dolo sit amet consectetur adipiscing elit Cras finibus, mauris in ......",
-        time: "09:25 AM",
-        images: [1, 2, 3],
-      },
-    ],
-  },
-  // FUTURE DAYS
-  {
-    day: 28,
-    month: "November",
-    tasks: [],
-  },
-  {
-    day: 29,
-    month: "November",
-    tasks: [
-      {
-        id: 5,
-        text: "Upcoming meeting preparation",
-        time: "02:00 PM",
-        images: [1, 2],
-      },
-    ],
-  },
-  {
-    day: 30,
-    month: "November",
-    tasks: [],
-  },
-  {
-    day: 1,
-    month: "December",
-    tasks: [
-      {
-        id: 4,
-        text: "Lorem Ipsum Dolo sit amet consectetur adipiscing elit Cras finibus, mauris in ......",
-        time: "09:25 AM",
-        images: [1, 2, 3],
-      },
-    ],
-  },
-  {
-    day: 2,
-    month: "December",
-    tasks: [],
-  },
-];
 
 const PulsingRing = ({ color }: { color: string }) => {
   const scale = useSharedValue(1);
@@ -178,21 +48,124 @@ const PulsingRing = ({ color }: { color: string }) => {
 
 const HomeScreen = () => {
   const colorScheme = useColorScheme();
-  const [searchText, setSearchText] = useState("");
   const colors = Colors[colorScheme ?? "light"];
   const scrollViewRef = useRef<ScrollView>(null);
   const [currentDayY, setCurrentDayY] = useState<number | null>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
 
+  // Get data from Zustand store
+  const tasks = useTaskStore((state) => state.tasks);
+  const searchText = useTaskStore((state) => state.searchText);
+  const selectedDate = useTaskStore((state) => state.selectedDate);
+  const setSearchText = useTaskStore((state) => state.setSearchText);
+  const openModal = useTaskStore((state) => state.openModal);
+  const toggleCompletion = useTaskStore((state) => state.toggleCompletion);
+
+  // Compute timeline data with useMemo to avoid infinite loops
+  const timelineData = useMemo(() => {
+    // Filter tasks based on search and date
+    const filteredTasks = tasks.filter((task) => {
+      // Search filter
+      if (
+        searchText &&
+        !task.note.toLowerCase().includes(searchText.toLowerCase())
+      ) {
+        return false;
+      }
+
+      // Date filter
+      if (selectedDate) {
+        const taskDate = new Date(task.date).toDateString();
+        const filterDate = selectedDate.toDateString();
+        if (taskDate !== filterDate) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // Group tasks by date
+    const tasksByDate = new Map<string, typeof tasks>();
+
+    filteredTasks.forEach((task) => {
+      const date = task.date;
+      if (!tasksByDate.has(date)) {
+        tasksByDate.set(date, []);
+      }
+      tasksByDate.get(date)!.push(task);
+    });
+
+    // Get current date
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+
+    // Find the min and max dates to fill gaps
+    const allDates = Array.from(tasksByDate.keys()).sort();
+
+    if (allDates.length === 0) {
+      // If no tasks, show current week
+      const timeline = [];
+      for (let i = -3; i <= 3; i++) {
+        const date = new Date(today);
+        date.setDate(date.getDate() + i);
+        const dateStr = date.toISOString().split("T")[0];
+
+        timeline.push({
+          day: date.getDate(),
+          month: date.toLocaleDateString("en-US", { month: "long" }),
+          isCurrent: dateStr === todayStr,
+          tasks: [],
+        });
+      }
+      return timeline;
+    }
+
+    // Create timeline with all dates from min to max (and include today)
+    const minDate = new Date(
+      Math.min(new Date(allDates[0]).getTime(), today.getTime())
+    );
+    const maxDate = new Date(
+      Math.max(
+        new Date(allDates[allDates.length - 1]).getTime(),
+        today.getTime()
+      )
+    );
+
+    const timeline = [];
+    const currentDate = new Date(minDate);
+
+    while (currentDate <= maxDate) {
+      const dateStr = currentDate.toISOString().split("T")[0];
+
+      timeline.push({
+        day: currentDate.getDate(),
+        month: currentDate.toLocaleDateString("en-US", { month: "long" }),
+        isCurrent: dateStr === todayStr,
+        tasks: tasksByDate.get(dateStr) || [],
+      });
+
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    return timeline;
+  }, [tasks, searchText, selectedDate]);
+
+  // Reset scroll state when timeline data changes
+  useEffect(() => {
+    setCurrentDayY(null);
+    setHasScrolled(false);
+  }, [timelineData.length]);
+
   useEffect(() => {
     if (currentDayY !== null && !hasScrolled && scrollViewRef.current) {
       const timer = setTimeout(() => {
         scrollViewRef.current?.scrollTo({
-          y: Math.max(0, currentDayY - 50),
+          y: Math.max(0, currentDayY - 100),
           animated: true,
         });
         setHasScrolled(true);
-      }, 100);
+      }, 300);
 
       return () => clearTimeout(timer);
     }
@@ -396,14 +369,21 @@ const HomeScreen = () => {
                           style={({ pressed }) => ({
                             opacity: pressed ? 0.7 : 1,
                           })}
+                          onPress={() => openModal(task)}
                         >
                           {/* Task Header with Checkbox */}
                           <View style={styles.taskHeader}>
                             <ThemedText
-                              style={styles.taskText}
+                              style={[
+                                styles.taskText,
+                                task.completed && {
+                                  textDecorationLine: "line-through",
+                                  opacity: 0.5,
+                                },
+                              ]}
                               numberOfLines={2}
                             >
-                              {task.text}
+                              {task.note}
                             </ThemedText>
                             <Pressable
                               style={[
@@ -413,44 +393,86 @@ const HomeScreen = () => {
                                     colorScheme === "dark"
                                       ? "#4B5563"
                                       : "#D1D5DB",
+                                  backgroundColor: task.completed
+                                    ? colors.tint
+                                    : "transparent",
                                 },
                               ]}
+                              onPress={(e) => {
+                                e.stopPropagation();
+                                toggleCompletion(task.id);
+                              }}
                             >
-                              <Feather
-                                name="circle"
-                                size={20}
-                                color={
-                                  colorScheme === "dark" ? "#4B5563" : "#D1D5DB"
-                                }
-                              />
+                              {task.completed ? (
+                                <Feather
+                                  name="check"
+                                  size={16}
+                                  color="#FFFFFF"
+                                />
+                              ) : (
+                                <Feather
+                                  name="circle"
+                                  size={20}
+                                  color={
+                                    colorScheme === "dark"
+                                      ? "#4B5563"
+                                      : "#D1D5DB"
+                                  }
+                                />
+                              )}
                             </Pressable>
                           </View>
 
                           {/* Task Images */}
-                          {task.images && task.images.length > 0 && (
+                          {task.imageUris && task.imageUris.length > 0 && (
                             <View style={styles.taskImagesContainer}>
-                              {task.images.map((img, idx) => (
+                              {task.imageUris
+                                .slice(0, 3)
+                                .map((imageUri, index) => (
+                                  <View
+                                    key={imageUri}
+                                    style={[
+                                      styles.taskImageWrapper,
+                                      {
+                                        borderColor:
+                                          colorScheme === "dark"
+                                            ? "#1A1A1A"
+                                            : "#FFFFFF",
+                                        marginLeft: index > 0 ? -8 : 0,
+                                        zIndex: task.imageUris!.length - index,
+                                      },
+                                    ]}
+                                  >
+                                    <Image
+                                      source={{ uri: imageUri }}
+                                      style={styles.taskImage}
+                                      resizeMode="cover"
+                                    />
+                                  </View>
+                                ))}
+                              {task.imageUris.length > 3 && (
                                 <View
-                                  key={idx}
                                   style={[
                                     styles.taskImageWrapper,
-                                    idx > 0 && { marginLeft: -12 },
-                                    { zIndex: task.images.length - idx },
+                                    styles.moreImagesBadge,
                                     {
+                                      backgroundColor:
+                                        colorScheme === "dark"
+                                          ? "#2D2D2D"
+                                          : "#F3F4F6",
                                       borderColor:
                                         colorScheme === "dark"
                                           ? "#1A1A1A"
                                           : "#FFFFFF",
+                                      marginLeft: -8,
                                     },
                                   ]}
                                 >
-                                  <Image
-                                    source={require("@/assets/images/android-icon-background.png")}
-                                    style={styles.taskImage}
-                                    resizeMode="cover"
-                                  />
+                                  <ThemedText style={styles.moreImagesText}>
+                                    +{task.imageUris.length - 3}
+                                  </ThemedText>
                                 </View>
-                              ))}
+                              )}
                             </View>
                           )}
 
@@ -481,6 +503,7 @@ const HomeScreen = () => {
               opacity: pressed ? 0.8 : 1,
             },
           ]}
+          onPress={() => openModal()}
         >
           <LinearGradient
             colors={[colors.tint, "#3B82F6"]}
@@ -491,6 +514,9 @@ const HomeScreen = () => {
             <Feather name="plus" size={32} color="#FFFFFF" />
           </LinearGradient>
         </Pressable>
+
+        {/* Task Modal */}
+        <TaskModal />
       </SafeAreaView>
     </ThemedView>
   );
@@ -722,6 +748,14 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     overflow: "hidden",
     borderWidth: 2,
+  },
+  moreImagesBadge: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  moreImagesText: {
+    fontSize: 11,
+    fontWeight: "600",
   },
   taskImage: {
     width: "100%",

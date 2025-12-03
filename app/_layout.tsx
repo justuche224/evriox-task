@@ -5,10 +5,13 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import "react-native-reanimated";
 
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { initDatabase } from "@/lib/database";
+import { useTaskStore } from "@/store/use-task-store";
 
 const CustomLightTheme = {
   ...DefaultTheme,
@@ -38,6 +41,21 @@ const CustomDarkTheme = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const loadTasks = useTaskStore((state) => state.loadTasks);
+
+  useEffect(() => {
+    async function initialize() {
+      try {
+        await initDatabase();
+        await loadTasks();
+        console.log("App initialized successfully");
+      } catch (error) {
+        console.error("Error initializing app:", error);
+      }
+    }
+
+    initialize();
+  }, []);
 
   return (
     <ThemeProvider
