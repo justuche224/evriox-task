@@ -55,7 +55,6 @@ const HomeScreen = () => {
   const [currentDayY, setCurrentDayY] = useState<number | null>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
 
-  // Get data from Zustand store
   const tasks = useTaskStore((state) => state.tasks);
   const searchText = useTaskStore((state) => state.searchText);
   const selectedDate = useTaskStore((state) => state.selectedDate);
@@ -66,7 +65,6 @@ const HomeScreen = () => {
   const openCalendar = useTaskStore((state) => state.openCalendar);
   const closeCalendar = useTaskStore((state) => state.closeCalendar);
 
-  // Memoize dates with tasks to ensure fresh data
   const datesWithTasks = useMemo(() => {
     const dates = new Set<string>();
     tasks.forEach((task) => {
@@ -77,11 +75,8 @@ const HomeScreen = () => {
     return Array.from(dates);
   }, [tasks]);
 
-  // Compute timeline data with useMemo to avoid infinite loops
   const timelineData = useMemo(() => {
-    // Filter tasks based on search and date
     const filteredTasks = tasks.filter((task) => {
-      // Search filter
       if (
         searchText &&
         !task.note.toLowerCase().includes(searchText.toLowerCase())
@@ -89,7 +84,6 @@ const HomeScreen = () => {
         return false;
       }
 
-      // Date filter
       if (selectedDate) {
         const taskDate = new Date(task.date).toDateString();
         const filterDate = selectedDate.toDateString();
@@ -101,7 +95,6 @@ const HomeScreen = () => {
       return true;
     });
 
-    // Group tasks by date
     const tasksByDate = new Map<string, typeof tasks>();
 
     filteredTasks.forEach((task) => {
@@ -112,15 +105,12 @@ const HomeScreen = () => {
       tasksByDate.get(date)!.push(task);
     });
 
-    // Get current date
     const today = new Date();
     const todayStr = today.toISOString().split("T")[0];
 
-    // Find the min and max dates to fill gaps
     const allDates = Array.from(tasksByDate.keys()).sort();
 
     if (allDates.length === 0) {
-      // If no tasks, show current week
       const timeline = [];
       for (let i = -3; i <= 3; i++) {
         const date = new Date(today);
@@ -137,7 +127,6 @@ const HomeScreen = () => {
       return timeline;
     }
 
-    // Create timeline with all dates from min to max (and include today)
     const minDate = new Date(
       Math.min(new Date(allDates[0]).getTime(), today.getTime())
     );
@@ -167,11 +156,10 @@ const HomeScreen = () => {
     return timeline;
   }, [tasks, searchText, selectedDate]);
 
-  // Reset scroll state when timeline data changes
   useEffect(() => {
     setCurrentDayY(null);
     setHasScrolled(false);
-    dayPositions.current = {}; // Reset positions
+    dayPositions.current = {};
   }, [timelineData.length]);
 
   useEffect(() => {
@@ -188,16 +176,12 @@ const HomeScreen = () => {
     }
   }, [currentDayY, hasScrolled]);
 
-  // Scroll to specific date from calendar
   const scrollToDate = (dateStr: string) => {
-    // Find the date in timeline
     const index = timelineData.findIndex((dayItem) => {
-      // If day has tasks, use the first task's date
       if (dayItem.tasks.length > 0) {
         return dayItem.tasks[0].date === dateStr;
       }
 
-      // Otherwise, construct date from month and day
       const monthIndex = [
         "January",
         "February",
@@ -221,7 +205,6 @@ const HomeScreen = () => {
     });
 
     if (index !== -1 && scrollViewRef.current) {
-      // Use measured position if available, otherwise estimate
       const y =
         dayPositions.current[index] !== undefined
           ? dayPositions.current[index]

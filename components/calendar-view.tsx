@@ -23,7 +23,6 @@ export function CalendarView({
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // Get days in month
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -38,7 +37,6 @@ export function CalendarView({
   const { daysInMonth, startDayOfWeek, year, month } =
     getDaysInMonth(currentMonth);
 
-  // Check if date has tasks
   const hasTasksOnDate = (day: number) => {
     // Construct ISO date string manually to avoid timezone issues
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(
@@ -47,7 +45,6 @@ export function CalendarView({
     return datesWithTasks.includes(dateStr);
   };
 
-  // Check if date is today
   const isToday = (day: number) => {
     const today = new Date();
     return (
@@ -57,7 +54,6 @@ export function CalendarView({
     );
   };
 
-  // Handle date selection
   const handleDatePress = (day: number) => {
     // Construct ISO date string manually to avoid timezone issues
     const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(
@@ -66,7 +62,6 @@ export function CalendarView({
     onDateSelect(dateStr);
   };
 
-  // Navigate months
   const goToPreviousMonth = () => {
     setCurrentMonth(new Date(year, month - 1, 1));
   };
@@ -79,7 +74,6 @@ export function CalendarView({
     setCurrentMonth(new Date());
   };
 
-  // Render calendar grid
   const renderCalendar = () => {
     const days = [];
     const totalCells = Math.ceil((daysInMonth + startDayOfWeek) / 7) * 7;

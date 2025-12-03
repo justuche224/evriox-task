@@ -14,11 +14,10 @@ export async function pickImage(): Promise<string | null> {
       throw new Error('Permission to access media library was denied');
     }
 
-    // Launch image picker with editing enabled
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true, // Enable crop/edit UI
-      aspect: [4, 3], // Aspect ratio for cropping
+      allowsEditing: true,
+      // aspect: [4, 3],
       quality: 0.8,
     });
 
@@ -105,7 +104,6 @@ export async function saveImageToAppDirectory(uri: string): Promise<string> {
     const filename = `task_${timestamp}_${randomStr}.jpg`;
     const destPath = `${imagesDir}${filename}`;
 
-    // Copy the image
     await (FileSystem as any).copyAsync({
       from: uri,
       to: destPath,

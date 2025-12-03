@@ -32,7 +32,6 @@ export function ImageViewer({
   const colors = Colors[colorScheme ?? "light"];
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
-  // Update index when scrolling
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / width);
