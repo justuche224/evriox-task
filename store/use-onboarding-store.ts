@@ -16,6 +16,7 @@ interface OnboardingState {
   nextStep: () => void;
   prevStep: () => void;
   completeOnboarding: () => Promise<void>;
+  updateUsername: (username: string) => Promise<void>;
   loadOnboardingState: () => Promise<void>;
   resetOnboarding: () => Promise<void>;
 }
@@ -66,6 +67,21 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
       set({ hasOnboarded: true, username: username.trim() });
     } catch (error) {
       console.error("Error saving onboarding state:", error);
+      throw error;
+    }
+  },
+
+  // Update username and persist
+  updateUsername: async (username: string) => {
+    try {
+      const state = {
+        hasOnboarded: true,
+        username: username.trim(),
+      };
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      set({ username: username.trim() });
+    } catch (error) {
+      console.error("Error updating username:", error);
       throw error;
     }
   },

@@ -1,4 +1,5 @@
 import { CalendarView } from "@/components/calendar-view";
+import { EditProfileModal } from "@/components/edit-profile-modal";
 import { TaskModal } from "@/components/task-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -55,6 +56,7 @@ const HomeScreen = () => {
   const dayPositions = useRef<{ [key: number]: number }>({});
   const [currentDayY, setCurrentDayY] = useState<number | null>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Get username from onboarding store
   const username = useOnboardingStore((state) => state.username);
@@ -251,7 +253,10 @@ const HomeScreen = () => {
                 })}
               </ThemedText>
             </View>
-            <Pressable style={styles.profileAvatar}>
+            <Pressable
+              style={styles.profileAvatar}
+              onPress={() => setIsProfileModalOpen(true)}
+            >
               <ThemedText style={styles.profileAvatarText}>
                 {username ? username.charAt(0).toUpperCase() : "U"}
               </ThemedText>
@@ -629,6 +634,12 @@ const HomeScreen = () => {
           onClose={closeCalendar}
           onDateSelect={scrollToDate}
           datesWithTasks={datesWithTasks}
+        />
+
+        {/* Edit Profile Modal */}
+        <EditProfileModal
+          visible={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
         />
       </SafeAreaView>
     </ThemedView>
