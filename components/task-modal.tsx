@@ -434,7 +434,7 @@ export function TaskModal() {
                         color="#FFFFFF"
                         style={{ marginRight: 8 }}
                       />
-                      <Text style={styles.saveButtonText}>Edit Task</Text>
+                      <Text style={styles.saveButtonText}>Edit</Text>
                     </LinearGradient>
                   </Pressable>
                 </>
@@ -670,6 +670,7 @@ const styles = StyleSheet.create({
   },
   saveButtonGradient: {
     paddingVertical: 16,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
   },

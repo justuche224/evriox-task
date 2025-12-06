@@ -226,7 +226,14 @@ const HomeScreen = () => {
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
-        <View style={styles.header}>
+        <View
+          style={[
+            styles.header,
+            {
+              borderBottomColor: colorScheme === "dark" ? "#2D2D2D" : "#E5E7EB",
+            },
+          ]}
+        >
           <View style={styles.headerTopRow}>
             <View>
               <ThemedText style={styles.greeting}>Hi, Donald</ThemedText>
@@ -625,6 +632,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 16,
+    borderBottomWidth: 1,
   },
   headerTopRow: {
     flexDirection: "row",
@@ -795,7 +803,7 @@ const styles = StyleSheet.create({
   },
   taskCard: {
     borderRadius: 20,
-    padding: 16,
+    padding: 10,
     borderWidth: 1,
     width: "100%",
     borderLeftWidth: 4,
@@ -835,8 +843,8 @@ const styles = StyleSheet.create({
     paddingLeft: 4, // Add padding to account for the first image's border if needed
   },
   taskImageWrapper: {
-    width: 36,
-    height: 36,
+    width: 45,
+    height: 45,
     borderRadius: 18,
     overflow: "hidden",
     borderWidth: 2,
