@@ -63,7 +63,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         }
       }
     ],
-    "expo-sqlite"
+    "expo-sqlite",
+    "expo-font",
+    "expo-web-browser"
   ],
   experiments: {
     typedRoutes: true,
