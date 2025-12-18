@@ -1,13 +1,19 @@
-import { Task } from '@/lib/database';
-import { deleteImage } from '@/lib/image-service';
-import * as TaskQueries from '@/lib/task-queries';
-import { create } from 'zustand';
+import { Task } from "@/lib/database";
+import { deleteImage } from "@/lib/image-service";
+import * as TaskQueries from "@/lib/task-queries";
+import { create } from "zustand";
 
 export interface TimelineDay {
   day: number;
   month: string;
   isCurrent?: boolean;
   tasks: Task[];
+}
+
+export interface TaskFilters {
+  showCompletedOnly: boolean;
+  showPendingOnly: boolean;
+  showDaysWithTasksOnly: boolean;
 }
 
 interface TaskStore {
@@ -19,11 +25,16 @@ interface TaskStore {
   isModalOpen: boolean;
   editingTask: Task | null;
   isCalendarOpen: boolean;
+  isFilterModalOpen: boolean;
+  filters: TaskFilters;
 
   // Actions
   loadTasks: () => Promise<void>;
   addTask: (note: string, date: string, imageUris?: string[]) => Promise<void>;
-  updateTask: (id: number, updates: { note?: string; date?: string; imageUris?: string[] | null }) => Promise<void>;
+  updateTask: (
+    id: number,
+    updates: { note?: string; date?: string; imageUris?: string[] | null }
+  ) => Promise<void>;
   deleteTask: (id: number) => Promise<void>;
   toggleCompletion: (id: number) => Promise<void>;
   setSearchText: (text: string) => void;
@@ -32,21 +43,33 @@ interface TaskStore {
   closeModal: () => void;
   openCalendar: () => void;
   closeCalendar: () => void;
+  openFilterModal: () => void;
+  closeFilterModal: () => void;
+  setFilters: (filters: Partial<TaskFilters>) => void;
+  resetFilters: () => void;
 
   // Computed
   getFilteredTasks: () => Task[];
   getTimelineData: () => TimelineDay[];
 }
 
+const defaultFilters: TaskFilters = {
+  showCompletedOnly: false,
+  showPendingOnly: false,
+  showDaysWithTasksOnly: false,
+};
+
 export const useTaskStore = create<TaskStore>((set, get) => ({
   // Initial state
   tasks: [],
   isLoading: false,
-  searchText: '',
+  searchText: "",
   selectedDate: null,
   isModalOpen: false,
   editingTask: null,
   isCalendarOpen: false,
+  isFilterModalOpen: false,
+  filters: { ...defaultFilters },
 
   // Load all tasks from SQLite
   loadTasks: async () => {
@@ -55,7 +78,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
       const tasks = await TaskQueries.getAllTasks();
       set({ tasks, isLoading: false });
     } catch (error) {
-      console.error('Error loading tasks:', error);
+      console.error("Error loading tasks:", error);
       set({ isLoading: false });
     }
   },
@@ -68,7 +91,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         tasks: [newTask, ...state.tasks],
       }));
     } catch (error) {
-      console.error('Error adding task:', error);
+      console.error("Error adding task:", error);
       throw error;
     }
   },
@@ -78,13 +101,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     try {
       // Get the current task to check if images are being replaced
       const currentTask = get().tasks.find((t) => t.id === id);
-      
+
       // If replacing images, delete the old ones
       if (currentTask?.imageUris && updates.imageUris !== undefined) {
         // Delete old images that are not in the new list
         const newUris = updates.imageUris || [];
         const oldUris = currentTask.imageUris;
-        
+
         for (const oldUri of oldUris) {
           if (!newUris.includes(oldUri)) {
             await deleteImage(oldUri);
@@ -94,12 +117,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
       const updatedTask = await TaskQueries.updateTask(id, updates);
       set((state) => ({
-        tasks: state.tasks.map((task) =>
-          task.id === id ? updatedTask : task
-        ),
+        tasks: state.tasks.map((task) => (task.id === id ? updatedTask : task)),
       }));
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error("Error updating task:", error);
       throw error;
     }
   },
@@ -109,10 +130,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     try {
       // Find the task to get its image URIs
       const task = get().tasks.find((t) => t.id === id);
-      
+
       // Delete from database
       await TaskQueries.deleteTask(id);
-      
+
       // Delete associated images if exist
       if (task?.imageUris) {
         for (const imageUri of task.imageUris) {
@@ -125,7 +146,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         tasks: state.tasks.filter((task) => task.id !== id),
       }));
     } catch (error) {
-      console.error('Error deleting task:', error);
+      console.error("Error deleting task:", error);
       throw error;
     }
   },
@@ -135,12 +156,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     try {
       const updatedTask = await TaskQueries.toggleTaskCompletion(id);
       set((state) => ({
-        tasks: state.tasks.map((task) =>
-          task.id === id ? updatedTask : task
-        ),
+        tasks: state.tasks.map((task) => (task.id === id ? updatedTask : task)),
       }));
     } catch (error) {
-      console.error('Error toggling completion:', error);
+      console.error("Error toggling completion:", error);
       throw error;
     }
   },
@@ -175,13 +194,38 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     set({ isCalendarOpen: false });
   },
 
-  // Get filtered tasks based on search and date
+  // Open filter modal
+  openFilterModal: () => {
+    set({ isFilterModalOpen: true });
+  },
+
+  // Close filter modal
+  closeFilterModal: () => {
+    set({ isFilterModalOpen: false });
+  },
+
+  // Set filters
+  setFilters: (newFilters: Partial<TaskFilters>) => {
+    set((state) => ({
+      filters: { ...state.filters, ...newFilters },
+    }));
+  },
+
+  // Reset filters
+  resetFilters: () => {
+    set({ filters: { ...defaultFilters } });
+  },
+
+  // Get filtered tasks based on search, date, and filters
   getFilteredTasks: () => {
-    const { tasks, searchText, selectedDate } = get();
-    
+    const { tasks, searchText, selectedDate, filters } = get();
+
     return tasks.filter((task) => {
       // Search filter
-      if (searchText && !task.note.toLowerCase().includes(searchText.toLowerCase())) {
+      if (
+        searchText &&
+        !task.note.toLowerCase().includes(searchText.toLowerCase())
+      ) {
         return false;
       }
 
@@ -194,6 +238,16 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         }
       }
 
+      // Completed only filter
+      if (filters.showCompletedOnly && !task.completed) {
+        return false;
+      }
+
+      // Pending only filter
+      if (filters.showPendingOnly && task.completed) {
+        return false;
+      }
+
       return true;
     });
   },
@@ -201,10 +255,11 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   // Transform tasks into timeline format
   getTimelineData: () => {
     const filteredTasks = get().getFilteredTasks();
-    
+    const { filters } = get();
+
     // Group tasks by date
     const tasksByDate = new Map<string, Task[]>();
-    
+
     filteredTasks.forEach((task) => {
       const date = task.date;
       if (!tasksByDate.has(date)) {
@@ -215,22 +270,41 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
 
     // Get current date
     const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
+    const todayStr = today.toISOString().split("T")[0];
 
     // Find the min and max dates to fill gaps
     const allDates = Array.from(tasksByDate.keys()).sort();
-    
+
+    // If showing only days with tasks
+    if (filters.showDaysWithTasksOnly) {
+      if (allDates.length === 0) {
+        return [];
+      }
+
+      const timeline: TimelineDay[] = [];
+      allDates.forEach((dateStr) => {
+        const date = new Date(dateStr);
+        timeline.push({
+          day: date.getDate(),
+          month: date.toLocaleDateString("en-US", { month: "long" }),
+          isCurrent: dateStr === todayStr,
+          tasks: tasksByDate.get(dateStr) || [],
+        });
+      });
+      return timeline;
+    }
+
     if (allDates.length === 0) {
       // If no tasks, show current week
       const timeline: TimelineDay[] = [];
       for (let i = -3; i <= 3; i++) {
         const date = new Date(today);
         date.setDate(date.getDate() + i);
-        const dateStr = date.toISOString().split('T')[0];
-        
+        const dateStr = date.toISOString().split("T")[0];
+
         timeline.push({
           day: date.getDate(),
-          month: date.toLocaleDateString('en-US', { month: 'long' }),
+          month: date.toLocaleDateString("en-US", { month: "long" }),
           isCurrent: dateStr === todayStr,
           tasks: [],
         });
@@ -239,18 +313,25 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
 
     // Create timeline with all dates from min to max (and include today)
-    const minDate = new Date(Math.min(new Date(allDates[0]).getTime(), today.getTime()));
-    const maxDate = new Date(Math.max(new Date(allDates[allDates.length - 1]).getTime(), today.getTime()));
-    
+    const minDate = new Date(
+      Math.min(new Date(allDates[0]).getTime(), today.getTime())
+    );
+    const maxDate = new Date(
+      Math.max(
+        new Date(allDates[allDates.length - 1]).getTime(),
+        today.getTime()
+      )
+    );
+
     const timeline: TimelineDay[] = [];
     const currentDate = new Date(minDate);
 
     while (currentDate <= maxDate) {
-      const dateStr = currentDate.toISOString().split('T')[0];
-      
+      const dateStr = currentDate.toISOString().split("T")[0];
+
       timeline.push({
         day: currentDate.getDate(),
-        month: currentDate.toLocaleDateString('en-US', { month: 'long' }),
+        month: currentDate.toLocaleDateString("en-US", { month: "long" }),
         isCurrent: dateStr === todayStr,
         tasks: tasksByDate.get(dateStr) || [],
       });

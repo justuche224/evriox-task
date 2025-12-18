@@ -1,5 +1,6 @@
 import { CalendarView } from "@/components/calendar-view";
 import { EditProfileModal } from "@/components/edit-profile-modal";
+import { FilterModal } from "@/components/filter-modal";
 import { LinkifiedText } from "@/components/linkified-text";
 import { TaskModal } from "@/components/task-modal";
 import { ThemedText } from "@/components/themed-text";
@@ -71,6 +72,8 @@ const HomeScreen = () => {
   const isCalendarOpen = useTaskStore((state) => state.isCalendarOpen);
   const openCalendar = useTaskStore((state) => state.openCalendar);
   const closeCalendar = useTaskStore((state) => state.closeCalendar);
+  const openFilterModal = useTaskStore((state) => state.openFilterModal);
+  const filters = useTaskStore((state) => state.filters);
 
   const datesWithTasks = useMemo(() => {
     const dates = new Set<string>();
@@ -99,6 +102,16 @@ const HomeScreen = () => {
         }
       }
 
+      // Completed only filter
+      if (filters.showCompletedOnly && !task.completed) {
+        return false;
+      }
+
+      // Pending only filter
+      if (filters.showPendingOnly && task.completed) {
+        return false;
+      }
+
       return true;
     });
 
@@ -116,6 +129,31 @@ const HomeScreen = () => {
     const todayStr = today.toISOString().split("T")[0];
 
     const allDates = Array.from(tasksByDate.keys()).sort();
+
+    // If showing only days with tasks
+    if (filters.showDaysWithTasksOnly) {
+      if (allDates.length === 0) {
+        return [];
+      }
+
+      const timeline: Array<{
+        day: number;
+        month: string;
+        isCurrent: boolean;
+        tasks: typeof tasks;
+      }> = [];
+
+      allDates.forEach((dateStr) => {
+        const date = new Date(dateStr);
+        timeline.push({
+          day: date.getDate(),
+          month: date.toLocaleDateString("en-US", { month: "long" }),
+          isCurrent: dateStr === todayStr,
+          tasks: tasksByDate.get(dateStr) || [],
+        });
+      });
+      return timeline;
+    }
 
     if (allDates.length === 0) {
       const timeline = [];
@@ -161,7 +199,7 @@ const HomeScreen = () => {
     }
 
     return timeline;
-  }, [tasks, searchText, selectedDate]);
+  }, [tasks, searchText, selectedDate, filters]);
 
   useEffect(() => {
     setCurrentDayY(null);
@@ -311,6 +349,7 @@ const HomeScreen = () => {
                   opacity: pressed ? 0.7 : 1,
                 },
               ]}
+              onPress={openFilterModal}
             >
               <Feather name="sliders" size={16} color={colors.tint} />
               <ThemedText
@@ -648,6 +687,9 @@ const HomeScreen = () => {
 
         {/* Task Modal */}
         <TaskModal />
+
+        {/* Filter Modal */}
+        <FilterModal />
 
         {/* Calendar Modal */}
         <CalendarView
