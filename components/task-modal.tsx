@@ -20,6 +20,7 @@ import {
   View,
 } from "react-native";
 import { ImageViewer } from "./image-viewer";
+import { LinkifiedText } from "./linkified-text";
 import { ThemedText } from "./themed-text";
 
 type ModalMode = "view" | "edit" | "create";
@@ -284,9 +285,9 @@ export function TaskModal() {
                         },
                       ]}
                     >
-                      <ThemedText style={styles.readOnlyNoteText}>
+                      <LinkifiedText style={styles.readOnlyNoteText}>
                         {note}
-                      </ThemedText>
+                      </LinkifiedText>
                     </View>
                   </View>
 
