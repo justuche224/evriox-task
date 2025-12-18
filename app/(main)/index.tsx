@@ -1,7 +1,7 @@
 import { CalendarView } from "@/components/calendar-view";
 import { EditProfileModal } from "@/components/edit-profile-modal";
 import { FilterModal } from "@/components/filter-modal";
-import { LinkifiedText } from "@/components/linkified-text";
+import { MarkdownText } from "@/components/markdown-text";
 import { TaskModal } from "@/components/task-modal";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
@@ -544,17 +544,17 @@ const HomeScreen = () => {
                         >
                           {/* Task Header with Checkbox */}
                           <View style={styles.taskHeader}>
-                            <LinkifiedText
-                              style={[
-                                styles.taskText,
-                                task.completed && {
+                            <MarkdownText
+                              style={{
+                                ...styles.taskText,
+                                ...(task.completed && {
                                   textDecorationLine: "line-through",
                                   opacity: 0.5,
-                                },
-                              ]}
+                                }),
+                              }}
                             >
                               {task.note}
-                            </LinkifiedText>
+                            </MarkdownText>
                             <Pressable
                               style={[
                                 styles.checkbox,

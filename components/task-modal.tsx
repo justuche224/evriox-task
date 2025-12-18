@@ -20,8 +20,8 @@ import {
   View,
 } from "react-native";
 import { ImageViewer } from "./image-viewer";
-import { LinkifiedText } from "./linkified-text";
 import { ThemedText } from "./themed-text";
+import { MarkdownText } from "./markdown-text";
 
 type ModalMode = "view" | "edit" | "create";
 
@@ -285,9 +285,9 @@ export function TaskModal() {
                         },
                       ]}
                     >
-                      <LinkifiedText style={styles.readOnlyNoteText}>
+                      <MarkdownText style={styles.readOnlyNoteText}>
                         {note}
-                      </LinkifiedText>
+                      </MarkdownText>
                     </View>
                   </View>
 
@@ -405,6 +405,13 @@ export function TaskModal() {
                       />
                     </View>
                   </View>
+
+                  {/* Formatting Hint */}
+                  <ThemedText
+                    style={[styles.formattingHint, { color: colors.icon }]}
+                  >
+                    Tip: **bold** • *italic* • - list • 1. numbered
+                  </ThemedText>
                 </View>
               )}
             </ScrollView>
@@ -787,5 +794,10 @@ const styles = StyleSheet.create({
     minHeight: 60,
     paddingTop: 8,
     paddingBottom: 8,
+  },
+  formattingHint: {
+    fontSize: 12,
+    marginTop: 8,
+    opacity: 0.7,
   },
 });
