@@ -19,8 +19,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { ThemedText } from "./themed-text";
 import { ImageViewer } from "./image-viewer";
+import { ThemedText } from "./themed-text";
 
 type ModalMode = "view" | "edit" | "create";
 
@@ -270,133 +270,142 @@ export function TaskModal() {
                 )}
               </View>
 
-              {/* Note Section */}
-              <View style={styles.section}>
-                <ThemedText style={styles.label}>Note</ThemedText>
-                {mode === "view" ? (
+              {/* View Mode: Display Note and Images */}
+              {mode === "view" && (
+                <>
+                  <View style={styles.section}>
+                    <ThemedText style={styles.label}>Note</ThemedText>
+                    <View
+                      style={[
+                        styles.readOnlyNoteContainer,
+                        {
+                          backgroundColor:
+                            colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
+                        },
+                      ]}
+                    >
+                      <ThemedText style={styles.readOnlyNoteText}>
+                        {note}
+                      </ThemedText>
+                    </View>
+                  </View>
+
+                  {imageUris.length > 0 && (
+                    <View style={styles.section}>
+                      <ThemedText style={styles.label}>
+                        Images ({imageUris.length})
+                      </ThemedText>
+                      <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={styles.imageScrollView}
+                        contentContainerStyle={styles.imageScrollContent}
+                      >
+                        {imageUris.map((uri, index) => (
+                          <View key={uri} style={styles.imagePreviewContainer}>
+                            <Pressable onPress={() => handleImagePress(index)}>
+                              <Image
+                                source={{ uri }}
+                                style={styles.imagePreview}
+                              />
+                            </Pressable>
+                          </View>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </>
+              )}
+
+              {/* Edit/Create Mode: Unified Input Container */}
+              {mode !== "view" && (
+                <View style={styles.section}>
+                  <ThemedText style={styles.label}>Task Details</ThemedText>
                   <View
                     style={[
-                      styles.readOnlyNoteContainer,
-                      {
-                        backgroundColor:
-                          colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
-                      },
-                    ]}
-                  >
-                    <ThemedText style={styles.readOnlyNoteText}>
-                      {note}
-                    </ThemedText>
-                  </View>
-                ) : (
-                  <TextInput
-                    style={[
-                      styles.noteInput,
+                      styles.unifiedInputContainer,
                       {
                         backgroundColor:
                           colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
                         borderColor:
                           colorScheme === "dark" ? "#3D3D3D" : "#E5E7EB",
-                        color: colors.text,
                       },
                     ]}
-                    placeholder="Enter your task note..."
-                    placeholderTextColor={colors.icon}
-                    value={note}
-                    onChangeText={setNote}
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                  />
-                )}
-              </View>
-
-              {/* Image Section */}
-              <View style={styles.section}>
-                <View style={styles.imageLabelRow}>
-                  <ThemedText style={styles.label}>
-                    Images ({imageUris.length})
-                  </ThemedText>
-                  {mode !== "view" && imageUris.length > 0 && (
-                    <Pressable
-                      style={styles.addMoreButton}
-                      onPress={handlePickImages}
-                      disabled={isPickingImage}
-                    >
-                      <Feather name="plus" size={16} color={colors.tint} />
-                      <ThemedText
-                        style={[styles.addMoreText, { color: colors.tint }]}
-                      >
-                        Add More
-                      </ThemedText>
-                    </Pressable>
-                  )}
-                </View>
-
-                {imageUris.length > 0 ? (
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.imageScrollView}
-                    contentContainerStyle={styles.imageScrollContent}
                   >
-                    {imageUris.map((uri, index) => (
-                      <View key={uri} style={styles.imagePreviewContainer}>
-                        <Pressable onPress={() => handleImagePress(index)}>
-                          <Image source={{ uri }} style={styles.imagePreview} />
-                        </Pressable>
-                        {mode !== "view" && (
-                          <Pressable
-                            style={[
-                              styles.removeImageButton,
-                              {
-                                backgroundColor:
-                                  colorScheme === "dark"
-                                    ? "#1A1A1A"
-                                    : "#FFFFFF",
-                              },
-                            ]}
-                            onPress={() => handleRemoveImage(uri)}
-                          >
-                            <Feather name="x" size={18} color="#EF4444" />
-                          </Pressable>
-                        )}
+                    {/* Image Thumbnails Row */}
+                    {imageUris.length > 0 && (
+                      <View style={styles.thumbnailsContainer}>
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={styles.thumbnailsScrollContent}
+                        >
+                          {imageUris.map((uri, index) => (
+                            <View key={uri} style={styles.thumbnailWrapper}>
+                              <Image
+                                source={{ uri }}
+                                style={styles.thumbnailImage}
+                              />
+                              <Pressable
+                                style={[
+                                  styles.thumbnailRemoveButton,
+                                  {
+                                    backgroundColor:
+                                      colorScheme === "dark"
+                                        ? "#1A1A1A"
+                                        : "#FFFFFF",
+                                  },
+                                ]}
+                                onPress={() => handleRemoveImage(uri)}
+                              >
+                                <Feather name="x" size={12} color="#EF4444" />
+                              </Pressable>
+                            </View>
+                          ))}
+                        </ScrollView>
                       </View>
-                    ))}
-                  </ScrollView>
-                ) : (
-                  mode !== "view" && (
-                    <Pressable
-                      style={[
-                        styles.addImageButton,
-                        {
-                          backgroundColor:
-                            colorScheme === "dark" ? "#2D2D2D" : "#F3F4F6",
-                          borderColor:
-                            colorScheme === "dark" ? "#3D3D3D" : "#E5E7EB",
-                        },
-                      ]}
-                      onPress={handlePickImages}
-                      disabled={isPickingImage}
-                    >
-                      {isPickingImage ? (
-                        <ActivityIndicator size="small" color={colors.tint} />
-                      ) : (
-                        <>
-                          <Feather name="image" size={24} color={colors.tint} />
-                          <ThemedText
-                            style={[
-                              styles.addImageText,
-                              { color: colors.tint },
-                            ]}
-                          >
-                            Add Images
-                          </ThemedText>
-                        </>
-                      )}
-                    </Pressable>
-                  )
-                )}
-              </View>
+                    )}
+
+                    {/* Input Row with + button and text input */}
+                    <View style={styles.inputRow}>
+                      {/* Add Image Button */}
+                      <Pressable
+                        style={[
+                          styles.addImageIconButton,
+                          {
+                            backgroundColor:
+                              colorScheme === "dark" ? "#3D3D3D" : "#E5E7EB",
+                          },
+                        ]}
+                        onPress={handlePickImages}
+                        disabled={isPickingImage}
+                      >
+                        {isPickingImage ? (
+                          <ActivityIndicator size="small" color={colors.tint} />
+                        ) : (
+                          <Feather name="plus" size={20} color={colors.tint} />
+                        )}
+                      </Pressable>
+
+                      {/* Text Input */}
+                      <TextInput
+                        style={[
+                          styles.unifiedTextInput,
+                          {
+                            color: colors.text,
+                          },
+                        ]}
+                        placeholder="What needs to be done?"
+                        placeholderTextColor={colors.icon}
+                        value={note}
+                        onChangeText={setNote}
+                        multiline
+                        textAlignVertical="top"
+                      />
+                    </View>
+                  </View>
+                </View>
+              )}
             </ScrollView>
 
             {/* Footer Buttons */}
@@ -709,5 +718,73 @@ const styles = StyleSheet.create({
     color: "#EF4444",
     fontSize: 16,
     fontWeight: "600",
+  },
+  // Unified Input Container Styles
+  unifiedInputContainer: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 12,
+    minHeight: 100,
+  },
+  thumbnailsContainer: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(128, 128, 128, 0.2)",
+  },
+  thumbnailsScrollContent: {
+    gap: 8,
+  },
+  thumbnailWrapper: {
+    position: "relative",
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  thumbnailImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 12,
+  },
+  thumbnailRemoveButton: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
+      },
+    }),
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  addImageIconButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unifiedTextInput: {
+    flex: 1,
+    fontSize: 16,
+    minHeight: 60,
+    paddingTop: 8,
+    paddingBottom: 8,
   },
 });
