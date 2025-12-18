@@ -1,6 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
+import * as MediaLibrary from "expo-media-library";
 
 /**
  * Pick an image from the user's gallery
@@ -179,5 +180,27 @@ export async function pickAndSaveMultipleImages(): Promise<string[]> {
   } catch (error) {
     console.error("Error in multiple images flow:", error);
     return [];
+  }
+}
+
+/**
+ * Save an image to the device's media library (gallery/camera roll)
+ */
+export async function saveImageToGallery(uri: string): Promise<boolean> {
+  try {
+    // Request media library permissions
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+
+    if (status !== "granted") {
+      throw new Error("Permission to access media library was denied");
+    }
+
+    // Save the image to the media library
+    await MediaLibrary.saveToLibraryAsync(uri);
+    console.log("Image saved to gallery:", uri);
+    return true;
+  } catch (error) {
+    console.error("Error saving image to gallery:", error);
+    throw error;
   }
 }

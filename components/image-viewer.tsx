@@ -1,8 +1,11 @@
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { saveImageToGallery } from "@/lib/image-service";
 import Feather from "@react-native-vector-icons/feather";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
   Modal,
@@ -31,11 +34,29 @@ export function ImageViewer({
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffsetX / width);
     setCurrentIndex(index);
+  };
+
+  const handleSaveImage = async () => {
+    if (isSaving) return;
+
+    try {
+      setIsSaving(true);
+      const currentImageUri = imageUris[currentIndex];
+      await saveImageToGallery(currentImageUri);
+      Alert.alert("Success", "Image saved to your gallery!");
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to save image";
+      Alert.alert("Error", errorMessage);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -53,6 +74,17 @@ export function ImageViewer({
           <ThemedText style={styles.counter}>
             {currentIndex + 1} / {imageUris.length}
           </ThemedText>
+          <Pressable
+            onPress={handleSaveImage}
+            style={styles.saveButton}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <Feather name="download" size={22} color="#FFFFFF" />
+            )}
+          </Pressable>
         </View>
 
         <ScrollView
@@ -97,6 +129,15 @@ const styles = StyleSheet.create({
     padding: 8,
     backgroundColor: "rgba(0,0,0,0.5)",
     borderRadius: 20,
+  },
+  saveButton: {
+    padding: 8,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
   counter: {
     color: "#FFFFFF",

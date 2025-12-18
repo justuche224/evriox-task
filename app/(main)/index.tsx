@@ -264,40 +264,46 @@ const HomeScreen = () => {
             </Pressable>
           </View>
 
-          <View style={styles.searchContainer}>
-            <View
+          {/* Full-width Search Bar */}
+          <View
+            style={[
+              styles.searchInputWrapper,
+              {
+                backgroundColor: colorScheme === "dark" ? "#1A1A1A" : "#F3F4F6",
+                borderColor: colorScheme === "dark" ? "#2D2D2D" : "#E5E7EB",
+              },
+            ]}
+          >
+            <Feather
+              name="search"
+              size={20}
+              color={colors.icon}
+              style={styles.searchIcon}
+            />
+            <TextInput
               style={[
-                styles.searchInputWrapper,
+                styles.searchInput,
                 {
-                  backgroundColor:
-                    colorScheme === "dark" ? "#1A1A1A" : "#F3F4F6",
-                  borderColor: colorScheme === "dark" ? "#2D2D2D" : "#E5E7EB",
+                  color: colors.text,
                 },
               ]}
-            >
-              <Feather
-                name="search"
-                size={20}
-                color={colors.icon}
-                style={styles.searchIcon}
-              />
-              <TextInput
-                style={[
-                  styles.searchInput,
-                  {
-                    color: colors.text,
-                  },
-                ]}
-                placeholder="Search Tasks"
-                placeholderTextColor={colors.icon}
-                value={searchText}
-                onChangeText={setSearchText}
-              />
-            </View>
+              placeholder="Search Tasks"
+              placeholderTextColor={colors.icon}
+              value={searchText}
+              onChangeText={setSearchText}
+            />
+            {searchText.length > 0 && (
+              <Pressable onPress={() => setSearchText("")}>
+                <Feather name="x-circle" size={18} color={colors.icon} />
+              </Pressable>
+            )}
+          </View>
 
+          {/* Action Buttons Row */}
+          <View style={styles.actionButtonsRow}>
             <Pressable
               style={({ pressed }) => [
-                styles.filterButton,
+                styles.actionButton,
                 {
                   backgroundColor:
                     colorScheme === "dark" ? "#1A1A1A" : "#F3F4F6",
@@ -306,12 +312,17 @@ const HomeScreen = () => {
                 },
               ]}
             >
-              <Feather name="sliders" size={22} color={colors.tint} />
+              <Feather name="sliders" size={16} color={colors.tint} />
+              <ThemedText
+                style={[styles.actionButtonLabel, { color: colors.text }]}
+              >
+                Filter
+              </ThemedText>
             </Pressable>
 
             <Pressable
               style={({ pressed }) => [
-                styles.filterButton,
+                styles.actionButton,
                 {
                   backgroundColor:
                     colorScheme === "dark" ? "#1A1A1A" : "#F3F4F6",
@@ -321,12 +332,17 @@ const HomeScreen = () => {
               ]}
               onPress={openCalendar}
             >
-              <Feather name="calendar" size={22} color={colors.tint} />
+              <Feather name="calendar" size={16} color={colors.tint} />
+              <ThemedText
+                style={[styles.actionButtonLabel, { color: colors.text }]}
+              >
+                Calendar
+              </ThemedText>
             </Pressable>
 
             <Pressable
               style={({ pressed }) => [
-                styles.filterButton,
+                styles.actionButton,
                 {
                   backgroundColor:
                     colorScheme === "dark" ? "#1A1A1A" : "#F3F4F6",
@@ -336,7 +352,12 @@ const HomeScreen = () => {
               ]}
               onPress={handleScrollToToday}
             >
-              <Feather name="target" size={22} color={colors.tint} />
+              <Feather name="target" size={16} color={colors.tint} />
+              <ThemedText
+                style={[styles.actionButtonLabel, { color: colors.text }]}
+              >
+                Today
+              </ThemedText>
             </Pressable>
           </View>
         </View>
@@ -698,22 +719,22 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   searchInputWrapper: {
-    flex: 1,
+    width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    height: 52,
-    borderRadius: 20,
+    height: 48,
+    borderRadius: 16,
     paddingHorizontal: 16,
     borderWidth: 1,
     ...Platform.select({
       ios: {
         shadowColor: "#000",
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 4,
+        elevation: 2,
       },
     }),
   },
@@ -744,6 +765,28 @@ const styles = StyleSheet.create({
         elevation: 4,
       },
     }),
+  },
+  actionButtonsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    marginTop: 12,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  actionButtonLabel: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   scrollView: {
     flex: 1,

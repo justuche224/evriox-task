@@ -1,18 +1,18 @@
-import { ConfigContext, ExpoConfig } from 'expo/config';
+import { ConfigContext, ExpoConfig } from "expo/config";
 
-const IS_DEV = process.env.APP_VARIANT === 'development';
-const IS_PREVIEW = process.env.APP_VARIANT === 'preview';
+const IS_DEV = process.env.APP_VARIANT === "development";
+const IS_PREVIEW = process.env.APP_VARIANT === "preview";
 
 const getUniqueIdentifier = () => {
-  if (IS_DEV) return 'com.evrioxtask.dev';
-  if (IS_PREVIEW) return 'com.evrioxtask.preview';
-  return 'com.evrioxtask';
+  if (IS_DEV) return "com.evrioxtask.dev";
+  if (IS_PREVIEW) return "com.evrioxtask.preview";
+  return "com.evrioxtask";
 };
 
 const getAppName = () => {
-  if (IS_DEV) return 'Evriox Task (Dev)';
-  if (IS_PREVIEW) return 'Evriox Task (Preview)';
-  return 'Evriox Task';
+  if (IS_DEV) return "Evriox Task (Dev)";
+  if (IS_PREVIEW) return "Evriox Task (Preview)";
+  return "Evriox Task";
 };
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
@@ -31,8 +31,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     icon: {
       light: "./assets/icons/ios/ios-light.png",
       dark: "./assets/icons/ios/ios-dark.png",
-      tinted: "./assets/icons/ios/ios-tinted.png"
-    }
+      tinted: "./assets/icons/ios/ios-tinted.png",
+    },
   },
   android: {
     package: getUniqueIdentifier(),
@@ -43,11 +43,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       // monochromeImage: "./assets/icons/android/android-icon-monochrome.png"
     },
     edgeToEdgeEnabled: true,
-    predictiveBackGestureEnabled: false
+    predictiveBackGestureEnabled: false,
   },
   web: {
     output: "static",
-    favicon: "./assets/images/favicon.png"
+    favicon: "./assets/images/favicon.png",
   },
   plugins: [
     "expo-router",
@@ -59,21 +59,32 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         resizeMode: "contain",
         backgroundColor: "#ffffff",
         dark: {
-          backgroundColor: "#000000"
-        }
-      }
+          backgroundColor: "#000000",
+        },
+      },
     ],
     "expo-sqlite",
     "expo-font",
-    "expo-web-browser"
+    "expo-web-browser",
+    [
+      "expo-media-library",
+      {
+        photosPermission:
+          "Allow $(PRODUCT_NAME) to save photos to your gallery.",
+        savePhotosPermission:
+          "Allow $(PRODUCT_NAME) to save photos to your gallery.",
+        isAccessMediaLocationEnabled: true,
+        granularPermissions: ["audio", "photos", "videos"],
+      },
+    ],
   ],
   experiments: {
     typedRoutes: true,
-    reactCompiler: true
+    reactCompiler: true,
   },
   extra: {
     eas: {
-      projectId: "b9c54a5d-899b-41f4-9ac2-938a67ca3cb9"
-    }
-  }
+      projectId: "b9c54a5d-899b-41f4-9ac2-938a67ca3cb9",
+    },
+  },
 });
