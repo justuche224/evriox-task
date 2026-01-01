@@ -10,9 +10,9 @@ const getUniqueIdentifier = () => {
 };
 
 const getAppName = () => {
-  if (IS_DEV) return "Evriox Task (Dev)";
-  if (IS_PREVIEW) return "Evriox Task (Preview)";
-  return "Evriox Task";
+  if (IS_DEV) return "Tasks (Dev)";
+  if (IS_PREVIEW) return "Tasks (Preview)";
+  return "Tasks";
 };
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
