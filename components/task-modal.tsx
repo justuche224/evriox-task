@@ -22,12 +22,20 @@ import {
 import { ImageViewer } from "./image-viewer";
 import { ThemedText } from "./themed-text";
 import { MarkdownText } from "./markdown-text";
+import { useGradualAnimation } from "@/hooks/use-gradual-animation";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
 
 type ModalMode = "view" | "edit" | "create";
 
 export function TaskModal() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
+    const { height } = useGradualAnimation();
+  const keyboardPadding = useAnimatedStyle(() => {
+    return {
+      height: height.value,
+    };
+  }, []);
 
   const {
     isModalOpen,
@@ -509,6 +517,7 @@ export function TaskModal() {
           onClose={() => setIsImageViewerOpen(false)}
         />
       </View>
+      <Animated.View style={keyboardPadding} />
     </Modal>
   );
 }

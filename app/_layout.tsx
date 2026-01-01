@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import "react-native-reanimated";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -93,6 +94,7 @@ export default function RootLayout() {
     <ThemeProvider
       value={colorScheme === "dark" ? CustomDarkTheme : CustomLightTheme}
     >
+      <KeyboardProvider>
       <Stack screenOptions={{ headerShown: false }}>
         {hasOnboarded ? (
           <Stack.Screen name="(main)" />
@@ -100,6 +102,7 @@ export default function RootLayout() {
           <Stack.Screen name="onboarding" />
         )}
       </Stack>
+      </KeyboardProvider>
       <StatusBar style="auto" />
     </ThemeProvider>
   );
